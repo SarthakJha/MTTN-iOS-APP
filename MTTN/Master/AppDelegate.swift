@@ -10,9 +10,9 @@ import UIKit
 import Firebase
 import FirebaseDatabase
 import FirebaseMessaging
-import FirebaseInstanceID
 import UserNotifications
 import SafariServices
+import DropDown
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterDelegate, MessagingDelegate{
@@ -43,6 +43,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         StoreKitHelper.incrementNumberOfTImesLaunched()
         StoreKitHelper.displayRequestRatings()
         
+        DropDown.startListeningToKeyboard()
+        
         return true
     }
     
@@ -69,6 +71,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
                 if let string = snapshot.value as? String{
                     print("SLCM URL FROM FIREBASE FETCHED SUCCESSFULLY")
                     UserDefaults.standard.set(string, forKey: "SLCM")
+                    UserDefaults.standard.synchronize()
+                    let url = string.components(separatedBy: "/attendance")
+                    let str = url[0]+"/get-captcha"
+                    UserDefaults.standard.set(str ,forKey: "SLCM_Captcha")
                     UserDefaults.standard.synchronize()
                 }
             }
@@ -100,6 +106,21 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
                     UserDefaults.standard.synchronize()
                 }
             }
+            if snapshot.key == "Playlist"{
+                if let string = snapshot.value as? String{
+                    print("PLAYLIST URL FROM FIREBASE FETCHED SUCCESSFULLY")
+                    UserDefaults.standard.set(string, forKey: "Playlist")
+                    UserDefaults.standard.synchronize()
+                }
+            }
+            if snapshot.key == "Twitter"{
+                if let string = snapshot.value as? String{
+                    print("TWITTER URL FROM FIREBASE FETCHED SUCCESSFULLY")
+                    UserDefaults.standard.set(string, forKey: "Twitter")
+                    UserDefaults.standard.synchronize()
+                }
+            }
+            
             
         }, withCancel: { (error) in
             print(error)
@@ -107,7 +128,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         })
     }
     
-    func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String) {
+    func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
         //this function is used to save fcmToken in UserDefaults
         print("fcmToken: \(fcmToken)")
         UserDefaults.standard.set(fcmToken, forKey: "fcmToken")
@@ -123,7 +144,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         // Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later.
         // If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
         
-        FBHandler(value: false)
+//        FBHandler(value: false)
     }
 
     func applicationWillEnterForeground(_ application: UIApplication) {
@@ -133,7 +154,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     func applicationDidBecomeActive(_ application: UIApplication) {
         // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
         
-        FBHandler(value: true)
+//        FBHandler(value: true)
     }
 
     func applicationWillTerminate(_ application: UIApplication) {
@@ -141,7 +162,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
     }
     
     @objc func FBHandler(value: Bool) {
-        Messaging.messaging().shouldEstablishDirectChannel = value
+        Messaging.messaging()
     }
     
     func handleApplicationStartingFromNotification(launchOptions: [UIApplication.LaunchOptionsKey: Any]?){
@@ -263,7 +284,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
                                     completionHandler(.failed)
                             }
                         }else{
-                            Networking.sharedInstance.fetchSLCMData(Parameters: parameters, dataCompletion: { (attendance, marks) in
+                            Networking.sharedInstance.fetchSLCMData(Parameters: parameters, dataCompletion: { (attendance, marks,credits) in
                                 if UserDefaults.standard.bool(forKey: "userHasEnabledFetch"){
                                     Notifications.sharedInstance.scheduleNotificationsForLowAttendance(Attendance: attendance)
                                     completionHandler(.newData)
